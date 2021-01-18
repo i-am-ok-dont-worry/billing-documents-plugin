@@ -71,7 +71,7 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
      * @req.query.token
      * @req.query.storeCode
      */
-    router.get('/:entityId', (req, res) => {
+    router.get('/single/:entityId', (req, res) => {
         const { entityId } = req.params;
         const { token } = req.query;
         const client = createMage2RestClient();
@@ -93,12 +93,34 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
      * @req.query.token
      * @req.query.storeCode
      */
-    router.get('/:customerId', (req, res) => {
+    router.get('/type/:customerId', (req, res) => {
         const { customerId, ...restParams } = req.params;
         const { token } = req.query;
         const client = createMage2RestClient();
         try {
             client.billingDocuments.getBllingDocumentTypes({ customerId, restParams }, token)
+                .then(response => apiStatus(res, response, 200))
+                .catch(err => apiError(res, err));
+        } catch (e) {
+            apiError(res, e);
+        }
+    });
+
+    /**
+     * Return single billing document type
+     * @req.param.typeId Type id
+     * @req.query.sort - Sort by
+     * @req.query.sortDir {asc|desc} - Sort direction
+     * @req.query.start - Page number
+     * @req.query.token
+     * @req.query.storeCode
+     */
+    router.get('/type/single/:typeId', (req, res) => {
+        const { typeId } = req.params;
+        const { token } = req.query;
+        const client = createMage2RestClient();
+        try {
+            client.billingDocuments.getBllingDocumentType(typeId, token)
                 .then(response => apiStatus(res, response, 200))
                 .catch(err => apiError(res, err));
         } catch (e) {
