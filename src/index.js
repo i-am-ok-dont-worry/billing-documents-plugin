@@ -1,10 +1,115 @@
+const SearchCriteria = require('magento-searchcriteria-builder');
+
 module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiClient }) => {
-    console.warn('----> Plugin initialized');
-    
+    const createMage2RestClient = () => {
+        const client = getRestApiClient();
+        client.addMethods('billingDocuments', (restClient) => {
+            const module = {};
+            module.getBillingDocuments = ({ customerId, sortBy, sortDir, pageSize, currentPage }, token) => {
+                const url = `/kmk-billingdocuments/search`;
+                const query = new SearchCriteria();
+                query.applyFilter('customer_id', customerId);
+                query.applySort(sortBy, sortDir);
+                query.setCurrentPage(currentPage);
+                query.setPageSize(pageSize);
+
+                return restClient.get(url + '?' + query.build(), token);
+            };
+
+            module.getBillingDocument = (entityId, token) => {
+                const url = `/kmk-billingdocuments/${entityId}`;
+                return restClient.get(url, token);
+            };
+
+            module.getBllingDocumentTypes = ({ customerId, sortBy, sortDir, pageSize, currentPage }, token) => {
+                const url = `/kmk-billingdocumenttype/search`;
+                const query = new SearchCriteria();
+                query.applyFilter('customer_id', customerId);
+                query.applySort(sortBy, sortDir);
+                query.setCurrentPage(currentPage);
+                query.setPageSize(pageSize);
+
+                return restClient.get(url + '?' + query.build(), token);
+            };
+
+            module.getBllingDocumentType = (typeId, token) => {
+                const url = `/kmk-billingdocumenttype/${typeId}`;
+                return restClient.get(url, token);
+            };
+
+            return module;
+        });
+
+        return client;
+    };
+
+    /**
+     * Returns list of store credits per customer
+     * @req.param.customerId Customer id
+     * @req.query.sort - Sort by
+     * @req.query.sortDir {asc|desc} - Sort direction
+     * @req.query.start - Page number
+     * @req.query.token
+     * @req.query.storeCode
+     */
+    router.get('/:customerId', (req, res) => {
+        const { customerId } = req.params;
+        const { token, storeCode, ...restParams } = req.query;
+        const client = createMage2RestClient();
+        try {
+            client.billingDocuments.getBillingDocuments({ customerId, restParams }, token)
+                .then(response => apiStatus(res, response, 200))
+                .catch(err => apiError(res, err));
+        } catch (e) {
+            apiError(res, e);
+        }
+    });
+
+    /**
+     * Returns single billing document
+     * @req.param.entityId Entity id
+     * @req.query.token
+     * @req.query.storeCode
+     */
+    router.get('/:entityId', (req, res) => {
+        const { entityId } = req.params;
+        const { token } = req.query;
+        const client = createMage2RestClient();
+        try {
+            client.billingDocuments.getBillingDocument(entityId, token)
+                .then(response => apiStatus(res, response, 200))
+                .catch(err => apiError(res, err));
+        } catch (e) {
+            apiError(res, e);
+        }
+    });
+
+    /**
+     * Returns billing document types
+     * @req.param.customerId Customer id
+     * @req.query.sort - Sort by
+     * @req.query.sortDir {asc|desc} - Sort direction
+     * @req.query.start - Page number
+     * @req.query.token
+     * @req.query.storeCode
+     */
+    router.get('/:customerId', (req, res) => {
+        const { customerId, ...restParams } = req.params;
+        const { token } = req.query;
+        const client = createMage2RestClient();
+        try {
+            client.billingDocuments.getBllingDocumentTypes({ customerId, restParams }, token)
+                .then(response => apiStatus(res, response, 200))
+                .catch(err => apiError(res, err));
+        } catch (e) {
+            apiError(res, e);
+        }
+    });
+
     return {
-        domainName: '{{domainName}}',
-        pluginName: '{{pluginName}}',
-        route: '{{restRoute}}',
+        domainName: '@grupakmk',
+        pluginName: 'billing-documents-plugin',
+        route: '/billing-documents',
         router
     };
 };
