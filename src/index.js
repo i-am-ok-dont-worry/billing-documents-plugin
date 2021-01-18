@@ -21,10 +21,14 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
                 return restClient.get(url, token);
             };
 
-            module.getBllingDocumentTypes = ({ customerId, sortBy, sortDir, pageSize, currentPage }, token) => {
+            module.getBllingDocumentTypes = ({ typeId, sortBy, sortDir, pageSize, currentPage }, token) => {
                 const url = `/kmk-billingdocumenttype/search`;
                 const query = new SearchCriteria();
-                query.applyFilter('customer_id', customerId);
+                if (typeId) {
+                    query.applyFilter('type_id', typeId);
+                } else {
+                    query.applyFilter('type_id', null, 'neq');
+                }
                 query.applySort(sortBy, sortDir);
                 query.setCurrentPage(currentPage);
                 query.setPageSize(pageSize);
@@ -42,6 +46,28 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
 
         return client;
     };
+
+    /**
+     * Returns billing document types
+     * @req.param.customerId Customer id
+     * @req.query.sort - Sort by
+     * @req.query.sortDir {asc|desc} - Sort direction
+     * @req.query.start - Page number
+     * @req.query.token
+     * @req.query.storeCode
+     */
+    router.get('/type/:typeId?', (req, res) => {
+        const { typeId, ...restParams } = req.params;
+        const { token } = req.query;
+        const client = createMage2RestClient();
+        try {
+            client.billingDocuments.getBllingDocumentTypes({ typeId, restParams }, token)
+                .then(response => apiStatus(res, response, 200))
+                .catch(err => apiError(res, err));
+        } catch (e) {
+            apiError(res, e);
+        }
+    });
 
     /**
      * Returns list of store credits per customer
@@ -77,28 +103,6 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
         const client = createMage2RestClient();
         try {
             client.billingDocuments.getBillingDocument(entityId, token)
-                .then(response => apiStatus(res, response, 200))
-                .catch(err => apiError(res, err));
-        } catch (e) {
-            apiError(res, e);
-        }
-    });
-
-    /**
-     * Returns billing document types
-     * @req.param.customerId Customer id
-     * @req.query.sort - Sort by
-     * @req.query.sortDir {asc|desc} - Sort direction
-     * @req.query.start - Page number
-     * @req.query.token
-     * @req.query.storeCode
-     */
-    router.get('/type/:customerId', (req, res) => {
-        const { customerId, ...restParams } = req.params;
-        const { token } = req.query;
-        const client = createMage2RestClient();
-        try {
-            client.billingDocuments.getBllingDocumentTypes({ customerId, restParams }, token)
                 .then(response => apiStatus(res, response, 200))
                 .catch(err => apiError(res, err));
         } catch (e) {
