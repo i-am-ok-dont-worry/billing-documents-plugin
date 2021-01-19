@@ -41,6 +41,11 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
                 return restClient.get(url, token);
             };
 
+            module.getBillingFile = (entityId, token) => {
+                const url = `/kmk-billingdocuments/file/${entityId}`;
+                return restClient.get(url, token);
+            };
+
             return module;
         });
 
@@ -126,6 +131,32 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
         try {
             client.billingDocuments.getBllingDocumentType(typeId, token)
                 .then(response => apiStatus(res, response, 200))
+                .catch(err => apiError(res, err));
+        } catch (e) {
+            apiError(res, e);
+        }
+    });
+
+    router.get('/file/:entityId', (req, res) => {
+        const { entityId } = req.params;
+        const { token } = req.query;
+        const client = createMage2RestClient();
+        try {
+            client.billingDocuments.getBillingFile(entityId, token)
+                .then(response => {
+                    if (response && response instanceof Array && response[0]) {
+                        const { name, mime, size, content } = response[0];
+                        const buffer = new Buffer(content, 'base64');
+                        const stream = buffer.toString('ascii');
+
+                        res.set('Content-Type', 'application/octet-stream');
+                        res.set('Content-Length', size);
+                        res.set('Content-Disposition', 'attachment; filename=' + name);
+                        res.status(200).send(stream);
+                    } else {
+                        apiError(res, 'Server error');
+                    }
+                })
                 .catch(err => apiError(res, err));
         } catch (e) {
             apiError(res, e);
