@@ -152,10 +152,12 @@ module.exports = ({ config, db, router, cache, apiStatus, apiError, getRestApiCl
                         res.set('Content-Type', 'application/octet-stream');
                         res.set('Content-Length', size);
                         res.set('Content-Disposition', 'attachment; filename=' + name);
+                        res.set('Access-Control-Expose-Headers', 'Content-Disposition');
                         res.status(200).send(stream);
                     } else {
                         apiError(res, 'Server error');
                     }
+                    // apiStatus(res, response, 200);
                 })
                 .catch(err => apiError(res, err));
         } catch (e) {
